@@ -1,0 +1,88 @@
+services:
+  # 1. Base de données PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: heistal_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: heistal_db
+      POSTGRES_USER: kinera_user
+      POSTGRES_PASSWORD: kinera_password
+    volumes:
+      - pgdata_heistal:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kinera_user -d heistal_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 2. Cache Redis (Optionnel / Extensible)
+  redis:
+    image: redis:7-alpine
+    container_name: heistal_redis
+    restart: unless-stopped
+
+  # 3. Application Complète Heistal (React + Django + Nginx + Gunicorn)
+  app:
+    image: hugueswilson/heistal:v2
+    container_name: heistal_app
+    restart: unless-stopped
+    ports:
+      - "8083:5000"
+    environment:
+      # --- Django Core & Sécurité ---
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=False
+      - SECRET_KEY=cle-secrete-heistal-2026-wilson-togo
+      - ALLOWED_HOSTS=heistal.ginolux.com,localhost,127.0.0.1,0.0.0.0
+
+      # --- Connexion Base de Données PostgreSQL ---
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=heistal_db
+      - DB_USER=kinera_user
+      - DB_PASSWORD=kinera_password
+      - DATABASE_URL=postgres://kinera_user:kinera_password@db:5432/heistal_db
+
+      # --- Sécurité CORS & CSRF ---
+      - CORS_ALLOW_ALL_ORIGINS=True
+      - CORS_ALLOWED_ORIGINS=https://heistal.ginolux.com,http://heistal.ginolux.com,http://localhost:3000,http://localhost:8083,http://localhost:8082
+      - CSRF_TRUSTED_ORIGINS=https://heistal.ginolux.com,http://heistal.ginolux.com,http://localhost:3000,http://localhost:8083,http://localhost:8082,http://127.0.0.1:8083
+
+      # --- Frontend ---
+      - VITE_API_BASE_URL=/api
+      - FRONTEND_URL=https://heistal.ginolux.com
+
+      # --- Configuration Email SMTP ---
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USE_TLS=True
+      - EMAIL_HOST_USER=wilsonhugues364@gmail.com
+      - EMAIL_HOST_PASSWORD=hhkxsoprqpxpdxcp
+
+      # --- Port Nginx interne ---
+      - PORT=5000
+    volumes:
+      - media_heistal:/app/backends/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # 4. Watchtower (Mises à jour automatiques des images Docker)
+  watchtower:
+    image: containrrr/watchtower
+    container_name: heistal_watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+    command: heistal_app
+
+volumes:
+  pgdata_heistal:
+  media_heistal:
