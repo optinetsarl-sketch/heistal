@@ -1,0 +1,95 @@
+/* Rangée qui défile, avec flèche quand des boutons sont cachés. Préfixe bd-. */
+.bd-cadre {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bd-clair {
+  --bd-fond: #ffffff;
+  --bd-fleche-fond: #ffffff;
+  --bd-fleche-texte: #007a3d;
+  --bd-fleche-bord: #cbd5e1;
+}
+
+.bd-sombre {
+  --bd-fond: #003b1d;
+  --bd-fleche-fond: #ffd000;
+  --bd-fleche-texte: #00361a;
+  --bd-fleche-bord: #ffd000;
+}
+
+/* Un voile en dégradé annonce que la rangée continue, la flèche le dit clairement. */
+.bd-cache-a-droite::after,
+.bd-cache-a-gauche::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 64px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.bd-cache-a-droite::after {
+  right: 0;
+  background: linear-gradient(to right, transparent, var(--bd-fond) 70%);
+}
+
+.bd-cache-a-gauche::before {
+  left: 0;
+  background: linear-gradient(to left, transparent, var(--bd-fond) 70%);
+}
+
+.bd-fleche {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Le rond visible fait 34 px, la zone à toucher 44 px. */
+.bd-fleche::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--bd-fleche-fond);
+  border: 1.5px solid var(--bd-fleche-bord);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.bd-fleche svg {
+  position: relative;
+  color: var(--bd-fleche-texte);
+}
+
+.bd-fleche-droite {
+  right: -4px;
+  animation: bd-invite 1.6s ease-in-out 2;
+}
+
+.bd-fleche-gauche {
+  left: -4px;
+}
+
+/* La flèche bouge deux fois à l'arrivée pour attirer l'œil, puis reste immobile. */
+@keyframes bd-invite {
+  0%, 100% { transform: translate(0, -50%); }
+  50% { transform: translate(4px, -50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-fleche-droite {
+    animation: none;
+  }
+}

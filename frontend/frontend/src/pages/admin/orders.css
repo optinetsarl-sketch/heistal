@@ -1,0 +1,387 @@
+/* Commandes du site et retrait en boutique par le code. Préfixe co-. */
+
+.co-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 1100px;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.co-carte-retrait {
+  background: var(--admin-bg-card-solid);
+  border: 1px solid var(--admin-border-gold);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.co-titre {
+  margin: 0 0 0.2rem;
+  color: #f8fafc;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.co-retrait {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.co-recherche label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.co-recherche-ligne {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.co-recherche-ligne .pf-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.co-recherche-ligne .btn {
+  flex-shrink: 0;
+  min-height: 46px;
+}
+
+.co-champ-code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* --- Fiche d'une commande */
+.co-fiche {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.9rem;
+  background: var(--admin-bg-subtle);
+  border: 1px solid var(--admin-border-green);
+  border-radius: var(--radius-md);
+  color: #e2e8f0;
+}
+
+.co-fiche-haut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.co-code {
+  margin: 0;
+  color: var(--admin-yellow);
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.co-statut {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.15rem 0.7rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.co-statut-attente { background: rgba(255, 208, 0, 0.16); color: var(--admin-yellow); }
+.co-statut-prete { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; }
+.co-statut-remise { background: rgba(34, 197, 94, 0.16); color: #4ade80; }
+.co-statut-expiree { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+.co-statut-annulee { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+
+.co-infos {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.co-infos div {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.co-infos dt {
+  color: var(--admin-text-muted);
+}
+
+.co-infos dd {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.co-infos a {
+  color: var(--admin-yellow);
+}
+
+.co-urgent {
+  color: #fca5a5;
+}
+
+.co-lignes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.co-lignes li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.co-ligne-quantite {
+  color: var(--admin-yellow);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.co-ligne-nom {
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.co-ligne-nom small {
+  color: var(--admin-text-muted);
+}
+
+.co-ligne-prix {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.co-total {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.co-total strong {
+  color: var(--admin-yellow);
+  font-size: 1.3rem;
+}
+
+.co-info {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 208, 0, 0.1);
+  color: #fde68a;
+  font-weight: 600;
+}
+
+.co-info-ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.co-info-alerte {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+}
+
+.co-encaissement {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.3rem;
+}
+
+.co-encaissement-titre {
+  margin: 0;
+  font-weight: 700;
+}
+
+.co-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.co-mode {
+  min-height: 48px;
+  padding: 0.4rem;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.co-mode-choisi {
+  border-color: var(--admin-yellow);
+  background: rgba(255, 208, 0, 0.12);
+  color: var(--admin-yellow);
+}
+
+.co-encaisser {
+  min-height: 52px;
+  font-size: 1.02rem;
+  font-weight: 800;
+  white-space: normal;
+}
+
+.co-aide {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: 0.85rem;
+}
+
+.co-gestion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+/* --- Liste des commandes */
+.co-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.co-ligne {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.75rem 0.9rem;
+  background: var(--admin-bg-card-solid);
+  border: 1px solid var(--admin-border-green);
+  border-radius: var(--radius-md);
+  color: #e2e8f0;
+}
+
+.co-ligne-haut,
+.co-ligne-client,
+.co-ligne-bas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.8rem;
+  min-width: 0;
+}
+
+.co-ligne-code {
+  color: var(--admin-yellow);
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.co-reste {
+  color: var(--admin-text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.co-ligne-client strong {
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.co-ligne-client a {
+  color: var(--admin-yellow);
+  font-weight: 600;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.co-ligne-articles {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.co-ligne-bas {
+  color: var(--admin-text-muted);
+  font-size: 0.86rem;
+}
+
+.co-ligne-bas span {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.co-ligne-bas strong {
+  color: var(--admin-yellow);
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+/* --- Bouton « Retrait commande » de la caisse */
+.btn-pos-tool.co-outil-retrait {
+  background: var(--admin-yellow);
+  border-color: var(--admin-yellow);
+  color: var(--admin-green-deep);
+}
+
+@media (max-width: 480px) {
+  .co-modes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .co-infos div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .co-code {
+    font-size: 1.45rem;
+  }
+  .co-recherche-ligne {
+    flex-direction: column;
+  }
+}
+
+.co-infos a,
+.co-ligne-client a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+/* Écran très étroit : le prix passe sous le nom, qui n'est plus coupé au milieu d'un mot. */
+@media (max-width: 360px) {
+  .co-lignes li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .co-ligne-prix {
+    grid-column: 2;
+  }
+}

@@ -54,8 +54,7 @@ COPY --from=frontend-builder /app/frontend/dist /var/www/frontend
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Script d'entrée pour démarrer Gunicorn et Nginx
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY --chmod=755 entrypoint.sh /app/entrypoint.sh
 
 # Ports web exposés (5000 et 80)
 EXPOSE 5000 80

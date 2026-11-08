@@ -1,299 +1,369 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { API_BASE, apiErrorMessage, apiFetch, getUser } from '../../api';
+import { boutiquesActives, compter, nomBoutique, normaliser } from './catalogue';
+import { Fenetre, MessageErreur } from './CatalogueUi';
+import { CAISSIERE, ROLES } from './roles';
+import './productForm.css';
+import './products.css';
+import './users.css';
 
-export default function AdminUsers() {
-  const [users, setUsers] = useState([
-    { id: 1, name: "Hugues Wilson", email: "hugues.wilson@heistal.com", role: "Super Admin", status: "Actif", joined: "12 Jan 2026", avatar: "HW" },
-    { id: 2, name: "Adjoa Mensah", email: "adjoa.mensah@example.com", role: "Gestionnaire", status: "Actif", joined: "04 Fév 2026", avatar: "AM" },
-    { id: 3, name: "Koffi Amegan", email: "koffi.amegan@gmail.com", role: "Client", status: "Actif", joined: "18 Fév 2026", avatar: "KA" },
-    { id: 4, name: "Société Togolaise", email: "contact@societetogo.tg", role: "Entreprise", status: "En attente", joined: "01 Mar 2026", avatar: "ST" },
-    { id: 5, name: "Emmanuel Lawson", email: "e.lawson@heistal.tg", role: "Modérateur", status: "Inactif", joined: "15 Mar 2026", avatar: "EL" },
-    { id: 6, name: "Afiya Dosseh", email: "afiya.dosseh@yahoo.fr", role: "Client", status: "Actif", joined: "22 Mar 2026", avatar: "AD" },
-  ]);
+const CHAMPS_DU_FORMULAIRE = ['nom_complet', 'username', 'telephone', 'email', 'role', 'boutique'];
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('Tous');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'Client' });
+// Le mot de passe provisoire ne s'affiche qu'une fois : le serveur n'en garde aucune trace lisible.
+function FenetreMotDePasse({ compte, motDePasse, onFermer }) {
+  const [copie, setCopie] = useState(false);
 
-  const handleToggleStatus = (id) => {
-    setUsers(users.map(u => {
-      if (u.id === id) {
-        const nextStatus = u.status === 'Actif' ? 'Inactif' : 'Actif';
-        return { ...u, status: nextStatus };
-      }
-      return u;
-    }));
+  const copier = async () => {
+    await navigator.clipboard.writeText(motDePasse);
+    setCopie(true);
   };
-
-  const handleAddUser = (e) => {
-    e.preventDefault();
-    if (!newUser.name || !newUser.email) return;
-    const initials = newUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
-    const created = {
-      id: Date.now(),
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      status: 'Actif',
-      joined: "Aujourd'hui",
-      avatar: initials
-    };
-    setUsers([created, ...users]);
-    setNewUser({ name: '', email: '', role: 'Client' });
-    setShowAddModal(false);
-  };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'Tous' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Top action bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="admin-search-wrapper" style={{ width: '280px' }}>
-            <span className="admin-search-icon">🔍</span>
-            <input 
-              type="text" 
-              className="admin-search-input" 
-              placeholder="Rechercher par nom ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <Fenetre titre="Mot de passe provisoire" sousTitre={compte.nom_complet} onFermer={onFermer}>
+      <div className="pr-dialog-body">
+        <p className="us-consigne">Notez-le maintenant et donnez-le à {compte.nom_complet} : <strong>il ne sera plus jamais affiché.</strong></p>
+        <dl className="us-identifiants">
+          <div><dt>Identifiant</dt><dd>{compte.username}</dd></div>
+          <div><dt>Mot de passe provisoire</dt><dd data-mot-de-passe>{motDePasse}</dd></div>
+        </dl>
+        <p className="pf-help">À sa prochaine connexion, cette personne devra choisir son propre mot de passe.</p>
+      </div>
+      <footer className="pr-dialog-foot">
+        {navigator.clipboard && (
+          <button type="button" className="btn btn-outline" onClick={copier}>{copie ? 'Copié ✓' : 'Copier'}</button>
+        )}
+        <button type="button" className="btn btn-primary" onClick={onFermer}>J'ai noté le mot de passe</button>
+      </footer>
+    </Fenetre>
+  );
+}
+
+function FenetreCompte({ compte, boutiques, onFermer, onEnregistre }) {
+  const estModification = Boolean(compte);
+  const [form, setForm] = useState({
+    nom_complet: compte?.nom_complet ?? '',
+    username: compte?.username ?? '',
+    telephone: compte?.telephone ?? '',
+    email: compte?.email ?? '',
+    role: compte?.role ?? '',
+    boutique: compte?.boutique ?? '',
+  });
+  const [erreurs, setErreurs] = useState({});
+  const [enregistrement, setEnregistrement] = useState(false);
+
+  const actives = boutiquesActives(boutiques);
+  // Une boutique fermée reste affichée pour la caissière qui y est encore affectée.
+  const choixBoutiques = compte?.boutique && !actives.some(({ id }) => id === compte.boutique)
+    ? [...actives, { id: compte.boutique, nom: compte.boutique_nom }]
+    : actives;
+
+  const modifier = (champ, valeur) => {
+    setForm((actuel) => ({ ...actuel, [champ]: valeur }));
+    setErreurs(({ [champ]: _corrige, ...autres }) => autres);
+  };
+
+  const enregistrer = async (e) => {
+    e.preventDefault();
+    const problemes = {};
+    if (!form.nom_complet.trim()) problemes.nom_complet = "Saisissez le nom de l'utilisateur.";
+    if (!form.role) problemes.role = 'Choisissez le rôle.';
+    if (form.role === CAISSIERE && !form.boutique) problemes.boutique = 'Choisissez la boutique de la caissière.';
+    if (Object.keys(problemes).length > 0) {
+      setErreurs(problemes);
+      return;
+    }
+
+    setEnregistrement(true);
+    try {
+      const reponse = await apiFetch(estModification ? `${API_BASE}/profiles/${compte.id}/` : `${API_BASE}/profiles/`, {
+        method: estModification ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom_complet: form.nom_complet.trim(),
+          username: form.username.trim(),
+          telephone: form.telephone.trim(),
+          email: form.email.trim(),
+          role: form.role,
+          boutique: form.role === CAISSIERE ? form.boutique : null,
+        }),
+      });
+      if (reponse.ok) {
+        onEnregistre(await reponse.json());
+        return;
+      }
+
+      const donnees = await reponse.json().catch(() => ({}));
+      const refus = Object.fromEntries(
+        Object.entries(donnees).map(([champ, valeur]) => [champ, Array.isArray(valeur) ? valeur.join(' ') : String(valeur)])
+      );
+      if (!CHAMPS_DU_FORMULAIRE.some((champ) => refus[champ])) {
+        refus.general = refus.detail || "L'enregistrement a échoué. Réessayez.";
+      }
+      setErreurs(refus);
+    } catch (err) {
+      console.warn('Enregistrement du compte impossible :', err);
+      setErreurs({ general: "Serveur injoignable : le compte n'a pas été enregistré." });
+    }
+    setEnregistrement(false);
+  };
+
+  return (
+    <Fenetre titre={estModification ? 'Modifier le compte' : 'Nouvel utilisateur'} sousTitre={compte?.nom_complet} onFermer={onFermer}>
+      <form className="pr-dialog-form" onSubmit={enregistrer} noValidate>
+        <div className="pr-dialog-body">
+          <div className="pf-field">
+            <label htmlFor="compte-nom">Nom complet *</label>
+            <input id="compte-nom" type="text" className="pf-input" value={form.nom_complet} onChange={(e) => modifier('nom_complet', e.target.value)} aria-invalid={Boolean(erreurs.nom_complet)} />
+            <MessageErreur>{erreurs.nom_complet}</MessageErreur>
           </div>
 
-          <select 
-            value={roleFilter} 
-            onChange={(e) => setRoleFilter(e.target.value)}
-            style={{
-              background: '#1f2937',
-              color: '#f8fafc',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.55rem 1rem',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
+          <div className="pf-field">
+            <span className="pr-field-label">Rôle *</span>
+            <div className="us-roles">
+              {ROLES.map(({ valeur, libelle, icone, description }) => (
+                <button
+                  key={valeur}
+                  type="button"
+                  className={`us-role ${form.role === valeur ? 'active' : ''}`}
+                  aria-pressed={form.role === valeur}
+                  onClick={() => modifier('role', valeur)}
+                >
+                  <span className="us-role-icone" aria-hidden="true">{icone}</span>
+                  <span>
+                    <strong>{libelle}</strong>
+                    <small>{description}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <MessageErreur>{erreurs.role}</MessageErreur>
+          </div>
+
+          {form.role === CAISSIERE && (
+            <div className="pf-field">
+              <label htmlFor="compte-boutique">Boutique de la caissière *</label>
+              <select id="compte-boutique" className="pf-input" value={form.boutique} onChange={(e) => modifier('boutique', Number(e.target.value) || '')} aria-invalid={Boolean(erreurs.boutique)}>
+                <option value="">Choisir une boutique</option>
+                {choixBoutiques.map(({ id, nom }) => <option key={id} value={id}>{nomBoutique(nom)}</option>)}
+              </select>
+              <MessageErreur>{erreurs.boutique}</MessageErreur>
+            </div>
+          )}
+
+          <div className="pf-field">
+            <label htmlFor="compte-identifiant">Identifiant de connexion</label>
+            <input id="compte-identifiant" type="text" className="pf-input" placeholder="Créé automatiquement si vide" value={form.username} onChange={(e) => modifier('username', e.target.value)} aria-invalid={Boolean(erreurs.username)} />
+            <MessageErreur>{erreurs.username}</MessageErreur>
+          </div>
+
+          <div className="pf-row">
+            <div className="pf-field">
+              <label htmlFor="compte-telephone">Téléphone</label>
+              <input id="compte-telephone" type="tel" className="pf-input" value={form.telephone} onChange={(e) => modifier('telephone', e.target.value)} />
+              <MessageErreur>{erreurs.telephone}</MessageErreur>
+            </div>
+            <div className="pf-field">
+              <label htmlFor="compte-email">E-mail</label>
+              <input id="compte-email" type="email" className="pf-input" value={form.email} onChange={(e) => modifier('email', e.target.value)} />
+              <MessageErreur>{erreurs.email}</MessageErreur>
+            </div>
+          </div>
+
+          {!estModification && <p className="pf-help">Un mot de passe provisoire sera créé et affiché une seule fois.</p>}
+          <MessageErreur>{erreurs.general}</MessageErreur>
+        </div>
+        <footer className="pr-dialog-foot">
+          <button type="button" className="btn btn-outline" onClick={onFermer} disabled={enregistrement}>Annuler</button>
+          <button type="submit" className="btn btn-primary" disabled={enregistrement}>
+            {enregistrement ? 'Enregistrement…' : estModification ? 'Enregistrer' : 'Créer le compte'}
+          </button>
+        </footer>
+      </form>
+    </Fenetre>
+  );
+}
+
+function LigneCompte({ compte, moi, onModifier, onMotDePasse, onStatut }) {
+  const actif = compte.statut === 'Actif';
+  return (
+    <li className={`us-ligne ${actif ? '' : 'us-ligne-inactive'}`}>
+      <div className="us-identite">
+        <span className="us-avatar" aria-hidden="true">{compte.initials}</span>
+        <div className="us-noms">
+          <p className="pr-row-name">{compte.nom_complet}{moi && <span className="us-moi"> (vous)</span>}</p>
+          <p className="pr-row-ref">@{compte.username}{compte.telephone.trim().length > 4 ? ` · ${compte.telephone}` : ''}</p>
+        </div>
+      </div>
+      <div className="us-poste">
+        <strong>{compte.role_label}</strong>
+        {compte.role === CAISSIERE && (
+          <span className={compte.boutique ? '' : 'us-sans-boutique'}>{compte.boutique ? nomBoutique(compte.boutique_nom) : 'Aucune boutique'}</span>
+        )}
+      </div>
+      <span className={`pr-badge ${actif ? 'pr-badge-ok' : 'pr-badge-rupture'}`}>{actif ? 'Actif' : 'Désactivé'}</span>
+      <div className="us-actions">
+        <button type="button" className="pr-btn" onClick={() => onModifier(compte)} aria-label={`Modifier le compte de ${compte.nom_complet}`}>Modifier</button>
+        <button type="button" className="pr-btn" onClick={() => onMotDePasse(compte)} aria-label={`Réinitialiser le mot de passe de ${compte.nom_complet}`}>Mot de passe</button>
+        <Link className="pr-btn" to={`/admin/mouvements?utilisateur=${compte.user}`} aria-label={`Mouvements de ${compte.nom_complet}`}>Mouvements</Link>
+        {!moi && (
+          <button
+            type="button"
+            className={`pr-btn ${actif ? 'pr-btn-danger' : ''}`}
+            onClick={() => onStatut(compte)}
+            aria-label={`${actif ? 'Désactiver' : 'Réactiver'} le compte de ${compte.nom_complet}`}
           >
-            <option value="Tous">Tous les rôles</option>
-            <option value="Super Admin">Super Admin</option>
-            <option value="Gestionnaire">Gestionnaire</option>
-            <option value="Modérateur">Modérateur</option>
-            <option value="Client">Client</option>
-            <option value="Entreprise">Entreprise</option>
-          </select>
-        </div>
+            {actif ? 'Désactiver' : 'Réactiver'}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
 
-        <button 
-          type="button" 
-          className="btn btn-primary"
-          onClick={() => setShowAddModal(true)}
-          style={{ gap: '0.4rem', padding: '0.6rem 1.25rem' }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Ajouter un utilisateur
-        </button>
+export default function AdminUsers() {
+  const [comptes, setComptes] = useState(null);
+  const [boutiques, setBoutiques] = useState([]);
+  const [panne, setPanne] = useState(false);
+  const [recherche, setRecherche] = useState('');
+  const [role, setRole] = useState('');
+  const [fenetre, setFenetre] = useState(null);
+  const [motDePasse, setMotDePasse] = useState(null);
+  const [message, setMessage] = useState(null);
+
+  const moi = getUser();
+
+  const charger = useCallback(async () => {
+    setPanne(false);
+    try {
+      const reponses = await Promise.all([apiFetch(`${API_BASE}/profiles/`), apiFetch(`${API_BASE}/boutiques/`)]);
+      if (reponses.some((reponse) => !reponse.ok)) throw new Error('Réponse refusée par le serveur');
+      const [listeComptes, listeBoutiques] = await Promise.all(reponses.map((reponse) => reponse.json()));
+      setComptes(listeComptes);
+      setBoutiques(listeBoutiques);
+    } catch (err) {
+      console.warn('Chargement des comptes impossible :', err);
+      setPanne(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    charger();
+  }, [charger]);
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const minuteur = setTimeout(() => setMessage(null), message.erreur ? 8000 : 3500);
+    return () => clearTimeout(minuteur);
+  }, [message]);
+
+  const compteEnregistre = (compte) => {
+    const creation = !fenetre.compte;
+    setFenetre(null);
+    if (creation) setMotDePasse({ compte, valeur: compte.mot_de_passe_temporaire });
+    else setMessage({ texte: `Le compte de ${compte.nom_complet} a bien été modifié.` });
+    charger();
+  };
+
+  const changerStatut = async (compte) => {
+    const desactiver = compte.statut === 'Actif';
+    if (desactiver && !window.confirm(`Désactiver le compte de ${compte.nom_complet} ? Cette personne ne pourra plus se connecter. Son historique est conservé.`)) return;
+    try {
+      const reponse = await apiFetch(`${API_BASE}/profiles/${compte.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: desactiver ? 'Inactif' : 'Actif' }),
+      });
+      if (!reponse.ok) {
+        setMessage({ texte: await apiErrorMessage(reponse, "Le compte n'a pas été modifié."), erreur: true });
+        return;
+      }
+      setMessage({ texte: `Le compte de ${compte.nom_complet} a été ${desactiver ? 'désactivé' : 'réactivé'}.` });
+      charger();
+    } catch (err) {
+      console.warn('Changement de statut impossible :', err);
+      setMessage({ texte: "Serveur injoignable : le compte n'a pas été modifié.", erreur: true });
+    }
+  };
+
+  const reinitialiser = async (compte) => {
+    if (!window.confirm(`Réinitialiser le mot de passe de ${compte.nom_complet} ? Ses sessions ouvertes seront fermées.`)) return;
+    try {
+      const reponse = await apiFetch(`${API_BASE}/profiles/${compte.id}/reinitialiser_mot_de_passe/`, { method: 'POST' });
+      if (!reponse.ok) {
+        setMessage({ texte: await apiErrorMessage(reponse, "Le mot de passe n'a pas été réinitialisé."), erreur: true });
+        return;
+      }
+      const { mot_de_passe_temporaire: valeur } = await reponse.json();
+      setMotDePasse({ compte, valeur });
+      charger();
+    } catch (err) {
+      console.warn('Réinitialisation impossible :', err);
+      setMessage({ texte: "Serveur injoignable : le mot de passe n'a pas été réinitialisé.", erreur: true });
+    }
+  };
+
+  if (panne) {
+    return (
+      <div className="ev-message" role="alert">
+        <p className="ev-message-titre">Impossible de charger les comptes</p>
+        <p>Vérifiez votre connexion, puis réessayez.</p>
+        <button type="button" className="btn btn-primary" onClick={charger}>Réessayer</button>
+      </div>
+    );
+  }
+
+  if (!comptes) return <div className="ev-message"><p>Chargement des comptes…</p></div>;
+
+  const texte = normaliser(recherche.trim());
+  const trouves = comptes.filter((compte) => !texte || normaliser(`${compte.nom_complet} ${compte.username}`).includes(texte));
+  const visibles = role ? trouves.filter((compte) => compte.role === role) : trouves;
+
+  return (
+    <div className="us-page">
+      <div className="pr-section-head">
+        <p className="pr-hint">Un compte ne se supprime pas : désactivez-le pour fermer son accès en gardant son historique.</p>
+        <button type="button" className="btn btn-primary pr-add" onClick={() => setFenetre({})}>+ Nouvel utilisateur</button>
       </div>
 
-      {/* Users table card */}
-      <div className="admin-panel-card">
-        <div className="admin-panel-header">
-          <div>
-            <h3 className="admin-panel-title">Liste des Utilisateurs ({filteredUsers.length})</h3>
-            <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Gérez les autorisations, statuts et profils des utilisateurs</p>
-          </div>
-        </div>
-
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Utilisateur</th>
-                <th>Rôle</th>
-                <th>Statut</th>
-                <th>Inscrit le</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-                    Aucun utilisateur ne correspond à votre recherche.
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <div className="user-cell">
-                        <div className="user-mini-avatar" style={{ background: user.role === 'Super Admin' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#374151' }}>
-                          {user.avatar}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 600, color: '#f8fafc' }}>{user.name}</span>
-                          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{user.email}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge" style={{ background: 'rgba(255,255,255,0.06)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge-admin-status ${user.status === 'Actif' ? 'status-active' : user.status === 'En attente' ? 'status-pending' : 'status-inactive'}`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td style={{ color: '#64748b' }}>{user.joined}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => handleToggleStatus(user.id)}
-                        style={{
-                          fontSize: '0.78rem',
-                          color: user.status === 'Actif' ? '#f87171' : '#34d399',
-                          background: 'rgba(255,255,255,0.05)',
-                          padding: '0.35rem 0.75rem',
-                          borderRadius: '6px',
-                          fontWeight: 600
-                        }}
-                      >
-                        {user.status === 'Actif' ? 'Suspendre' : 'Activer'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      <div className="pr-filters">
+        <label className="pr-search">
+          <span className="pf-visually-hidden">Rechercher un utilisateur</span>
+          <span aria-hidden="true">🔍</span>
+          <input type="search" className="pr-search-input" placeholder="Nom ou identifiant" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
+        </label>
+        <div className="pr-chips" role="group" aria-label="Filtrer par rôle">
+          {[{ valeur: '', libelle: 'Tous' }, ...ROLES].map(({ valeur, libelle }) => (
+            <button key={libelle} type="button" className={`pr-chip ${role === valeur ? 'active' : ''}`} aria-pressed={role === valeur} onClick={() => setRole(valeur)}>
+              {libelle} <span>{valeur ? trouves.filter((compte) => compte.role === valeur).length : trouves.length}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Add User Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{
-            background: '#111827',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.75rem',
-            width: '100%',
-            maxWidth: '460px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            boxShadow: 'var(--shadow-xl)',
-            boxSizing: 'border-box'
-          }}>
-            <h3 style={{ color: 'white', marginBottom: '0.5rem', fontSize: '1.25rem' }}>Créer un nouvel utilisateur</h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Renseignez les détails pour donner accès à la plateforme.</p>
-
-            <form onSubmit={handleAddUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.825rem', marginBottom: '0.4rem' }}>Nom complet</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Ex: Koffi Mensah"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#1f2937',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.65rem 1rem',
-                    color: 'white',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.825rem', marginBottom: '0.4rem' }}>Adresse email</label>
-                <input 
-                  type="email" 
-                  required
-                  placeholder="Ex: koffi@heistal.com"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#1f2937',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.65rem 1rem',
-                    color: 'white',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.825rem', marginBottom: '0.4rem' }}>Rôle attribué</label>
-                <select 
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: '#1f2937',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.65rem 1rem',
-                    color: 'white',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="Client">Client</option>
-                  <option value="Gestionnaire">Gestionnaire</option>
-                  <option value="Modérateur">Modérateur</option>
-                  <option value="Super Admin">Super Admin</option>
-                  <option value="Entreprise">Entreprise</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowAddModal(false)}
-                  className="btn btn-outline"
-                  style={{ background: 'transparent', color: '#cbd5e1' }}
-                >
-                  Annuler
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                >
-                  Enregistrer
-                </button>
-              </div>
-            </form>
-          </div>
+      {visibles.length === 0 ? (
+        <div className="pr-state-box"><p>Aucun compte trouvé.</p></div>
+      ) : (
+        <div className="us-liste">
+          <p className="pr-summary"><strong>{compter(visibles.length, 'compte')}</strong></p>
+          <ul className="pr-rows">
+            {visibles.map((compte) => (
+              <LigneCompte
+                key={compte.id}
+                compte={compte}
+                moi={compte.id === moi?.id}
+                onModifier={(choisi) => setFenetre({ compte: choisi })}
+                onMotDePasse={reinitialiser}
+                onStatut={changerStatut}
+              />
+            ))}
+          </ul>
         </div>
       )}
+
+      {fenetre && <FenetreCompte compte={fenetre.compte} boutiques={boutiques} onFermer={() => setFenetre(null)} onEnregistre={compteEnregistre} />}
+      {motDePasse && <FenetreMotDePasse compte={motDePasse.compte} motDePasse={motDePasse.valeur} onFermer={() => setMotDePasse(null)} />}
+      {message && <div className={`pr-toast ${message.erreur ? 'pr-toast-erreur' : ''}`} role="status">{message.texte}</div>}
     </div>
   );
 }

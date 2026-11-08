@@ -53,8 +53,8 @@ export default function AdminSettings() {
                 onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
                 style={{
                   width: '100%',
-                  background: '#1f2937',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: '#092815',
+                  border: '1px solid rgba(0, 122, 61, 0.35)',
                   borderRadius: 'var(--radius-md)',
                   padding: '0.65rem 1rem',
                   color: 'white',
@@ -71,8 +71,8 @@ export default function AdminSettings() {
                 onChange={(e) => setSettings({ ...settings, adminEmail: e.target.value })}
                 style={{
                   width: '100%',
-                  background: '#1f2937',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: '#092815',
+                  border: '1px solid rgba(0, 122, 61, 0.35)',
                   borderRadius: 'var(--radius-md)',
                   padding: '0.65rem 1rem',
                   color: 'white',
@@ -89,8 +89,8 @@ export default function AdminSettings() {
                 disabled
                 style={{
                   width: '100%',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'rgba(0, 40, 19, 0.4)',
+                  border: '1px solid rgba(0, 122, 61, 0.25)',
                   borderRadius: 'var(--radius-md)',
                   padding: '0.65rem 1rem',
                   color: '#94a3b8'
@@ -106,8 +106,8 @@ export default function AdminSettings() {
                 onChange={(e) => setSettings({ ...settings, backendApiUrl: e.target.value })}
                 style={{
                   width: '100%',
-                  background: '#1f2937',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: '#092815',
+                  border: '1px solid rgba(0, 122, 61, 0.35)',
                   borderRadius: 'var(--radius-md)',
                   padding: '0.65rem 1rem',
                   color: 'white',
@@ -132,7 +132,7 @@ export default function AdminSettings() {
                 type="checkbox" 
                 checked={settings.maintenanceMode}
                 onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
-                style={{ width: '20px', height: '20px', accentColor: '#6366f1' }}
+                style={{ width: '20px', height: '20px', accentColor: '#007a3d' }}
               />
             </label>
 
@@ -145,7 +145,7 @@ export default function AdminSettings() {
                 type="checkbox" 
                 checked={settings.twoFactorAuth}
                 onChange={(e) => setSettings({ ...settings, twoFactorAuth: e.target.checked })}
-                style={{ width: '20px', height: '20px', accentColor: '#6366f1' }}
+                style={{ width: '20px', height: '20px', accentColor: '#007a3d' }}
               />
             </label>
 
@@ -158,7 +158,7 @@ export default function AdminSettings() {
                 type="checkbox" 
                 checked={settings.emailAlerts}
                 onChange={(e) => setSettings({ ...settings, emailAlerts: e.target.checked })}
-                style={{ width: '20px', height: '20px', accentColor: '#6366f1' }}
+                style={{ width: '20px', height: '20px', accentColor: '#007a3d' }}
               />
             </label>
           </div>

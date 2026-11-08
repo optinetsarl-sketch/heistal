@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { apiErrorMessage, apiFetch, getUser } from '../../api';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { formaterPrix, nomBoutique } from './catalogue';
+import { Fenetre } from './CatalogueUi';
+import RetraitCommande from './RetraitCommande';
+import { CAISSIERE, CONTROLEUR } from './roles';
 import './admin.css';
+import './productForm.css';
+import './products.css';
+import './salesSpaces.css';
+import './orders.css';
+
+const estAujourdhui = (date) => new Date(date).toDateString() === new Date().toDateString();
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://127.0.0.1:8000/api' : '/api');
 
+// La clé repart d'un ticket vide à chaque boutique : un panier ne passe jamais d'un stock à l'autre.
 export default function AdminPOS() {
+  const { boutiqueId } = useParams();
+  return <CaisseBoutique key={boutiqueId} boutiqueId={boutiqueId} />;
+}
+
+function CaisseBoutique({ boutiqueId }) {
   const navigate = useNavigate();
+  const employe = getUser();
 
   const [products, setProducts] = useState([]);
   const [rayons, setRayons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeBoutique, setActiveBoutique] = useState('Tokoin Wuiti');
+  const [espaces, setEspaces] = useState([]);
+  const [panne, setPanne] = useState(false);
   const [selectedRayon, setSelectedRayon] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [stockOnlyFilter, setStockOnlyFilter] = useState(false);
@@ -30,6 +49,7 @@ export default function AdminPOS() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [retraitOuvert, setRetraitOuvert] = useState(false);
   const [recentSales, setRecentSales] = useState([]);
 
   // Horloge en direct
@@ -47,46 +67,26 @@ export default function AdminPOS() {
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  // Chargement des données
+  // Chargement de cet espace de vente. En cas de panne, un message : jamais de produits inventés.
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [prodRes, rayRes, salesRes] = await Promise.all([
-        fetch(`${API_BASE}/products/`),
-        fetch(`${API_BASE}/rayons/`),
-        fetch(`${API_BASE}/sales/`)
+      setPanne(false);
+      const reponses = await Promise.all([
+        apiFetch(`${API_BASE}/products/`),
+        apiFetch(`${API_BASE}/rayons/`),
+        apiFetch(`${API_BASE}/sales/?boutique=${boutiqueId}`),
+        apiFetch(`${API_BASE}/boutiques/espaces-de-vente/`)
       ]);
-
-      if (prodRes.ok && rayRes.ok) {
-        const prodData = await prodRes.json();
-        const rayData = await rayRes.json();
-        setProducts(prodData);
-        setRayons(rayData);
-      } else {
-        throw new Error('API non prête');
-      }
-
-      if (salesRes.ok) {
-        const salesData = await salesRes.json();
-        setRecentSales(salesData);
-      }
+      if (reponses.some((reponse) => !reponse.ok)) throw new Error('Réponse refusée par le serveur');
+      const [prodData, rayData, salesData, espacesData] = await Promise.all(reponses.map((reponse) => reponse.json()));
+      setProducts(prodData);
+      setRayons(rayData);
+      setRecentSales(salesData);
+      setEspaces(espacesData);
     } catch (err) {
-      console.warn("Utilisation du mode local pour le Point de Vente:", err);
-      setRayons([
-        { id: 1, nom: "Rayon Poissons & Mers", code: "RAY-POISS-01" },
-        { id: 2, nom: "Rayon Volailles & Découpes", code: "RAY-VOL-02" },
-        { id: 3, nom: "Rayon Viandes Rouges & Bovins", code: "RAY-VIAND-03" },
-        { id: 4, nom: "Rayon Frites, Légumes & Glaces", code: "RAY-LEG-04" },
-        { id: 5, nom: "Rayon Snacks & Croustillants", code: "RAY-SNA-05" }
-      ]);
-      setProducts([
-        { id: 1, nom: "Tilapia Frais Surgelé de Première Qualité", reference: "HST-TIL-001", rayon: 1, rayon_nom: "Rayon Poissons & Mers", emplacement_bac: "Bac A-01", prix_vente: 2800, stock_tokoin: 83, stock_adidogome: 60, unite: "kg" },
-        { id: 2, nom: "Cuisses de Poulet Gros Calibre (Carton 10kg)", reference: "HST-VOL-002", rayon: 2, rayon_nom: "Rayon Volailles & Découpes", emplacement_bac: "Bac B-01", prix_vente: 18500, stock_tokoin: 42, stock_adidogome: 35, unite: "carton" },
-        { id: 3, nom: "Filet de Bœuf Tendre Sans Os", reference: "HST-BOV-003", rayon: 3, rayon_nom: "Rayon Viandes Rouges & Bovins", emplacement_bac: "Bac C-01", prix_vente: 4500, stock_tokoin: 28, stock_adidogome: 20, unite: "kg" },
-        { id: 4, nom: "Frites Croustillantes McCain Original (Sachet 2.5kg)", reference: "HST-FRI-004", rayon: 4, rayon_nom: "Rayon Frites, Légumes & Glaces", emplacement_bac: "Armoire D-01", prix_vente: 3800, stock_tokoin: 65, stock_adidogome: 48, unite: "sachet" },
-        { id: 5, nom: "Nuggets de Poulet Extra Croustillants (1kg)", reference: "HST-SNA-005", rayon: 5, rayon_nom: "Rayon Snacks & Croustillants", emplacement_bac: "Bac E-01", prix_vente: 3200, stock_tokoin: 54, stock_adidogome: 38, unite: "sachet" },
-        { id: 6, nom: "Capitaine Frais Entier Écaillé", reference: "HST-CAP-006", rayon: 1, rayon_nom: "Rayon Poissons & Mers", emplacement_bac: "Bac A-03", prix_vente: 3500, stock_tokoin: 12, stock_adidogome: 8, unite: "kg" }
-      ]);
+      console.warn('Chargement de la caisse impossible :', err);
+      setPanne(true);
     } finally {
       setLoading(false);
     }
@@ -94,18 +94,21 @@ export default function AdminPOS() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [boutiqueId]);
+
+  const boutiqueVente = espaces.find((espace) => String(espace.id) === boutiqueId);
+  const nomVente = nomBoutique(boutiqueVente?.nom);
 
   // Stock dans la boutique sélectionnée
   const getProductStock = (product) => {
-    return activeBoutique === 'Adidogomé' ? product.stock_adidogome : product.stock_tokoin;
+    return product.stocks?.find((stock) => stock.boutique === boutiqueVente?.id)?.quantite ?? 0;
   };
 
   // Ajout au panier de vente
   const addToCart = (product) => {
     const currentStock = getProductStock(product);
     if (currentStock <= 0) {
-      showToast(`⚠️ Rupture de stock pour "${product.nom}" à la boutique ${activeBoutique}`);
+      showToast(`⚠️ Rupture de stock pour "${product.nom}" à la boutique ${nomVente}`);
       return;
     }
 
@@ -178,7 +181,7 @@ export default function AdminPOS() {
     const saleRef = `HST-${Date.now().toString().slice(-6)}`;
     const salePayload = {
       reference: saleRef,
-      boutique: activeBoutique,
+      boutique: boutiqueVente.id,
       client_nom: clientName || "Client Comptoir",
       client_tel: clientTel || "",
       mode_paiement: paymentMethod,
@@ -187,7 +190,6 @@ export default function AdminPOS() {
       total_ttc: finalTotal,
       montant_recu: paymentMethod === 'Espèces' ? (numericReceived || finalTotal) : finalTotal,
       monnaie_rendue: paymentMethod === 'Espèces' ? changeToReturn : 0,
-      caissier: "Hugues Wilson (Caissier Heistal)",
       items: cart.map(item => ({
         produit: item.id,
         nom_produit: item.nom,
@@ -199,48 +201,38 @@ export default function AdminPOS() {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/sales/`, {
+      const response = await apiFetch(`${API_BASE}/sales/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(salePayload)
       });
 
-      if (response.ok) {
-        const createdSale = await response.json();
-        setLastSaleReceipt({
-          ...createdSale,
-          items: cart,
-          date: new Date().toLocaleString('fr-TG')
-        });
-        showToast("✅ Encaissement validé avec succès !");
-      } else {
-        setLastSaleReceipt({
-          ...salePayload,
-          items: cart,
-          date: new Date().toLocaleString('fr-TG')
-        });
-        showToast("✅ Vente enregistrée localement !");
+      if (!response.ok) {
+        showToast(`⚠️ ${await apiErrorMessage(response, "La vente n'a pas été enregistrée.")}`);
+        return;
       }
-    } catch (err) {
+
+      const createdSale = await response.json();
       setLastSaleReceipt({
-        ...salePayload,
+        ...createdSale,
         items: cart,
         date: new Date().toLocaleString('fr-TG')
       });
-      showToast("✅ Vente validée !");
+      showToast("✅ Encaissement validé avec succès !");
+    } catch (err) {
+      console.warn('Encaissement impossible :', err);
+      showToast("⚠️ Serveur injoignable : la vente n'a pas été enregistrée.");
+      return;
     }
 
     // Décrémenter les stocks
     setProducts(products.map(prod => {
       const inCart = cart.find(c => c.id === prod.id);
-      if (inCart) {
-        if (activeBoutique === 'Adidogomé') {
-          return { ...prod, stock_adidogome: Math.max(0, prod.stock_adidogome - inCart.qty) };
-        } else {
-          return { ...prod, stock_tokoin: Math.max(0, prod.stock_tokoin - inCart.qty) };
-        }
-      }
-      return prod;
+      if (!inCart) return prod;
+      const stocks = (prod.stocks ?? []).map((stock) => (
+        stock.boutique === boutiqueVente?.id ? { ...stock, quantite: Math.max(0, stock.quantite - inCart.qty) } : stock
+      ));
+      return { ...prod, stocks };
     }));
 
     // Réinitialisation du ticket
@@ -251,11 +243,15 @@ export default function AdminPOS() {
     fetchData();
   };
 
-  // Calcul du Chiffre d'Affaires du jour
-  const todayTurnover = recentSales.reduce((sum, s) => sum + (s.total_ttc || 0), 0);
+  // Les ventes du jour de cette boutique
+  const ventesDuJour = recentSales.filter((vente) => estAujourdhui(vente.date_vente));
+  const todayTurnover = ventesDuJour.reduce((sum, s) => sum + (s.total_ttc || 0), 0);
+
+  // Chaque boutique ne montre que les produits qu'elle a en stock, même épuisés.
+  const produitsBoutique = products.filter((produit) => produit.stocks?.some((stock) => stock.boutique === boutiqueVente?.id));
 
   // Filtrage des produits pour la grille
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = produitsBoutique.filter(p => {
     const matchesRayon = selectedRayon === 'all' || p.rayon?.toString() === selectedRayon || p.rayon_nom === selectedRayon;
     const matchesSearch = p.nom.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           p.reference.toLowerCase().includes(searchQuery.toLowerCase());
@@ -263,6 +259,27 @@ export default function AdminPOS() {
     const matchesStock = !stockOnlyFilter || stock > 0;
     return matchesRayon && matchesSearch && matchesStock;
   });
+
+  // Une panne après une vente ne ferme pas la caisse : le reçu reste à l'écran.
+  if (panne && espaces.length === 0) {
+    return (
+      <div className="ev-message" role="alert">
+        <p className="ev-message-titre">Impossible d'ouvrir la caisse</p>
+        <p>Vérifiez votre connexion, puis réessayez. Aucune vente ne peut être enregistrée sans le serveur.</p>
+        <button type="button" className="btn btn-primary" onClick={fetchData}>Réessayer</button>
+      </div>
+    );
+  }
+
+  if (!loading && !boutiqueVente) {
+    return (
+      <div className="ev-message" role="alert">
+        <p className="ev-message-titre">Espace de vente indisponible</p>
+        <p>Cette boutique est fermée, ou vous n'y êtes pas affecté.</p>
+        <Link to="/admin/pos" className="btn btn-primary">Retour aux boutiques</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="pos-workspace-container">
@@ -275,44 +292,22 @@ export default function AdminPOS() {
         <div className="pos-store-selector-group">
           <div className="store-pin-icon">🏬</div>
           <div>
-            <div className="store-pin-label">Boutique Active Heistal</div>
-            <div className="store-switch-buttons">
-              <button
-                type="button"
-                className={`btn-store-switch ${activeBoutique === 'Tokoin Wuiti' ? 'active' : ''}`}
-                onClick={() => setActiveBoutique('Tokoin Wuiti')}
-              >
-                <span>📍 Tokoin Wuiti</span>
-                <span className="store-status-dot"></span>
-              </button>
-
-              <button
-                type="button"
-                className={`btn-store-switch ${activeBoutique === 'Adidogomé' ? 'active' : ''}`}
-                onClick={() => setActiveBoutique('Adidogomé')}
-              >
-                <span>📍 Adidogomé</span>
-                <span className="store-status-dot"></span>
-              </button>
-            </div>
+            <div className="store-pin-label">Espace de vente</div>
+            <div className="store-pin-nom">{nomVente}</div>
+            {espaces.length > 1 && <Link to="/admin/pos" className="store-pin-lien">← Changer de boutique</Link>}
           </div>
         </div>
 
         {/* Center: Live Session Indicators */}
         <div className="pos-session-indicators">
           <div className="session-badge">
-            <span className="session-lbl">Caisse :</span>
-            <strong style={{ color: '#ffd000' }}>Poste 01 (Lomé)</strong>
-          </div>
-
-          <div className="session-badge">
             <span className="session-lbl">Caissier :</span>
-            <strong style={{ color: '#ffffff' }}>Hugues Wilson</strong>
+            <strong style={{ color: '#ffffff' }}>{employe?.nom_complet}</strong>
           </div>
 
           <div className="session-badge highlight">
             <span className="session-lbl">Ventes du jour :</span>
-            <strong style={{ color: '#34d399' }}>{todayTurnover.toLocaleString('fr-FR')} FCFA</strong>
+            <strong style={{ color: '#34d399' }}>{formaterPrix(todayTurnover)}</strong>
           </div>
 
           <div className="session-badge clock">
@@ -324,14 +319,25 @@ export default function AdminPOS() {
         <div className="pos-command-tools">
           <button
             type="button"
+            className="btn-pos-tool co-outil-retrait"
+            onClick={() => setRetraitOuvert(true)}
+            title="Le client donne le code de sa commande passée sur le site"
+          >
+            <span aria-hidden="true">📦</span>
+            <span>Retrait commande</span>
+          </button>
+
+          <button
+            type="button"
             className="btn-pos-tool"
             onClick={() => setShowHistory(true)}
             title="Consulter le journal des ventes du jour"
           >
             <span>📋</span>
-            <span>Journal ({recentSales.length})</span>
+            <span>Journal ({ventesDuJour.length})</span>
           </button>
 
+          {employe?.role !== CAISSIERE && (
           <button
             type="button"
             className="btn-pos-tool outline"
@@ -341,6 +347,7 @@ export default function AdminPOS() {
             <span>📦</span>
             <span>Rayons & Bacs</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -395,11 +402,11 @@ export default function AdminPOS() {
               onClick={() => setSelectedRayon('all')}
             >
               <span>❄️ Tous les Rayons</span>
-              <span className="tab-badge">{products.length}</span>
+              <span className="tab-badge">{produitsBoutique.length}</span>
             </button>
 
             {rayons.map(rayon => {
-              const rayCount = products.filter(p => p.rayon === rayon.id || p.rayon_nom === rayon.nom).length;
+              const rayCount = produitsBoutique.filter(p => p.rayon === rayon.id || p.rayon_nom === rayon.nom).length;
               const icon = rayon.nom.includes('Poisson') ? '🐟' :
                            rayon.nom.includes('Volaille') ? '🍗' :
                            rayon.nom.includes('Viande') ? '🥩' :
@@ -428,9 +435,13 @@ export default function AdminPOS() {
             ) : filteredProducts.length === 0 ? (
               <div className="pos-grid-empty">
                 <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔍</div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#f8fafc' }}>Aucun produit trouvé</div>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#f8fafc' }}>
+                  {produitsBoutique.length === 0 ? `Aucun produit à ${nomVente}` : 'Aucun produit trouvé'}
+                </div>
                 <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                  Modifiez votre recherche ou sélectionnez un autre rayon.
+                  {produitsBoutique.length === 0
+                    ? 'Ajoutez du stock à cette boutique depuis la page Produits.'
+                    : 'Modifiez votre recherche ou sélectionnez un autre rayon.'}
                 </div>
               </div>
             ) : (
@@ -503,7 +514,7 @@ export default function AdminPOS() {
                 <div>
                   <h3 className="ticket-main-title">Ticket de Vente Caisse</h3>
                   <div className="ticket-main-sub">
-                    {activeBoutique} • {new Date().toLocaleDateString('fr-TG')}
+                    {nomVente} • {new Date().toLocaleDateString('fr-TG')}
                   </div>
                 </div>
               </div>
@@ -739,7 +750,7 @@ export default function AdminPOS() {
               <div className="receipt-head">
                 <div className="receipt-brand-title">LA BOUTIQUE HEISTAL</div>
                 <div className="receipt-sub">Spécialiste Surgelé de Qualité • Lomé</div>
-                <div className="receipt-sub">Boutique : {lastSaleReceipt.boutique}</div>
+                <div className="receipt-sub">Boutique : {nomBoutique(lastSaleReceipt.boutique_nom)}</div>
                 <div className="receipt-sub">Tél Fixe : (+228) 22 26 42 29 • Commercial : (+228) 96 37 38 42</div>
                 <div className="receipt-line-dashed">----------------------------------------</div>
               </div>
@@ -842,6 +853,18 @@ export default function AdminPOS() {
       {/* ========================================================================= */}
       {/* MODAL : JOURNAL DES VENTES DU JOUR                                        */}
       {/* ========================================================================= */}
+      {retraitOuvert && (
+        <Fenetre titre="Retrait d'une commande" sousTitre={nomVente} onFermer={() => setRetraitOuvert(false)}>
+          <div className="pr-dialog-body">
+            <RetraitCommande
+              boutiqueCaisse={boutiqueId}
+              peutVendre={employe?.role !== CONTROLEUR}
+              onEncaissee={() => fetchData()}
+            />
+          </div>
+        </Fenetre>
+      )}
+
       {showHistory && (
         <div className="pos-modal-backdrop" onClick={() => setShowHistory(false)}>
           <div className="pos-history-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -866,17 +889,17 @@ export default function AdminPOS() {
             </div>
 
             <div className="history-modal-body">
-              {recentSales.length === 0 ? (
+              {ventesDuJour.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
                   Aucune vente enregistrée pour aujourd'hui.
                 </div>
               ) : (
-                recentSales.map(sale => (
+                ventesDuJour.map(sale => (
                   <div key={sale.id} className="history-sale-entry">
                     <div className="history-entry-top">
                       <div>
                         <span className="sale-ref-chip">{sale.reference}</span>
-                        <span className="sale-boutique-chip">📍 {sale.boutique}</span>
+                        <span className="sale-boutique-chip">📍 {nomBoutique(sale.boutique_nom)}</span>
                       </div>
                       <div className="sale-total-badge">
                         {sale.total_ttc?.toLocaleString('fr-FR')} FCFA

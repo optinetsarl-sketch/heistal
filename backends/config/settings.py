@@ -68,6 +68,15 @@ CSRF_TRUSTED_ORIGINS = [
     if origin.strip()
 ]
 
+REST_FRAMEWORK = {
+    # Tout est fermé par défaut : une vue publique doit le déclarer explicitement.
+    'DEFAULT_AUTHENTICATION_CLASSES': ['api.authentication.ApiTokenAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': ['api.permissions.IsStaffMember'],
+    'DEFAULT_THROTTLE_RATES': {'connexion': '10/minute', 'commande': '20/minute', 'suivi': '30/minute', 'visite': '300/minute'},
+    # nginx est devant Gunicorn : le visiteur est la dernière adresse de X-Forwarded-For.
+    'NUM_PROXIES': 1,
+}
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [

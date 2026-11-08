@@ -1,0 +1,295 @@
+/* Stylesheet for Heistal Togo Login Page */
+
+.login-page-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 20%, #0d3822 0%, #071e12 45%, #050b08 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  font-family: var(--font-main, system-ui, -apple-system, sans-serif);
+}
+
+/* Background animated glow orbs */
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.login-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: #007a3d;
+  top: -100px;
+  left: -100px;
+}
+
+.login-orb-2 {
+  width: 350px;
+  height: 350px;
+  background: #ffd000;
+  bottom: -80px;
+  right: -80px;
+  opacity: 0.15;
+}
+
+/* Central Card */
+.login-card {
+  width: 100%;
+  max-width: 460px;
+  background: rgba(17, 24, 39, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 2.25rem 2rem;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 35px rgba(0, 122, 61, 0.15);
+  position: relative;
+  z-index: 10;
+  box-sizing: border-box;
+  animation: loginFadeIn 0.4s ease-out;
+}
+
+@keyframes loginFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffd000, #f59e0b);
+  color: #00361a;
+  font-size: 1.85rem;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(255, 208, 0, 0.35);
+  margin-bottom: 0.85rem;
+}
+
+.login-title {
+  color: #ffffff;
+  font-size: 1.55rem;
+  font-weight: 800;
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.01em;
+}
+
+.login-subtitle {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Form inputs */
+.login-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.login-label {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.login-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 1rem;
+  color: #64748b;
+  font-size: 1.05rem;
+  pointer-events: none;
+}
+
+.login-input {
+  width: 100%;
+  background: rgba(31, 41, 55, 0.95);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  font-size: 0.92rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.login-input:focus {
+  border-color: #ffd000;
+  box-shadow: 0 0 0 3px rgba(255, 208, 0, 0.2);
+  background: #1f2937;
+}
+
+.login-toggle-pwd {
+  position: absolute;
+  right: 0.85rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.login-toggle-pwd:hover {
+  color: #ffffff;
+}
+
+/* Error message */
+.login-error-alert {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Submit button */
+.btn-login-submit {
+  width: 100%;
+  background: #007a3d;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 122, 61, 0.4);
+}
+
+.btn-login-submit:hover:not(:disabled) {
+  background: #008f47;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 122, 61, 0.5);
+}
+
+.btn-login-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Quick Demo Accounts */
+.login-demo-section {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.login-demo-title {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.login-demo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+}
+
+.login-demo-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.76rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.login-demo-chip:hover {
+  background: rgba(255, 208, 0, 0.15);
+  border-color: #ffd000;
+  color: #ffd000;
+  transform: translateY(-1px);
+}
+
+/* Footer Link */
+.login-footer-link {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.login-footer-link a {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.15s ease;
+}
+
+.login-footer-link a:hover {
+  color: #ffffff;
+}
+
+/* --- Téléphone : zones touchables au doigt */
+.login-toggle-pwd {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.login-footer-link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+form label:has(> input[type='checkbox']) {
+  min-height: 44px;
+}

@@ -1,0 +1,24 @@
+# Secrets : jamais dans Git. Les clés attendues sont listées dans .env.example.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Django : base locale, fichiers générés et images envoyées par les utilisateurs
+*.sqlite3
+*.sqlite3-journal
+backends/staticfiles/
+backends/media/
+
+# Frontend
+node_modules/
+dist/
+
+# Système
+.DS_Store
+*.log

@@ -1,0 +1,602 @@
+/* Tableau de bord. Préfixe tb-.
+   Couleurs des graphiques validées pour le fond de l'administration (#092815), daltonisme compris :
+   ambre pour les visiteurs, bleu pour les commandes et les ventes. Le texte garde les couleurs du texte. */
+
+.tb-page {
+  --tb-visiteurs: #b08600;
+  --tb-visiteurs-survol: #c99c10;
+  --tb-commandes: #3a8ee0;
+  --tb-commandes-survol: #5aa2e8;
+  --tb-texte: #f1f5f9;
+  --tb-texte-doux: #cbd5e1;
+  --tb-texte-discret: var(--admin-text-muted);
+  --tb-trait: rgba(255, 255, 255, 0.1);
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  min-width: 0;
+  margin-inline: auto;
+  color: var(--tb-texte-doux);
+}
+
+.tb-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.tb-titre {
+  margin: 0;
+  color: var(--tb-texte);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.tb-date {
+  margin: 0.15rem 0 0;
+  color: var(--tb-texte-discret);
+}
+
+.tb-date::first-letter,
+.tb-tableau tbody th::first-letter {
+  text-transform: uppercase;
+}
+
+.tb-raccourcis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tb-raccourcis .btn {
+  min-height: 44px;
+}
+
+.tb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.tb-section-titre {
+  margin: 0;
+  color: var(--tb-texte);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.tb-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  transition: opacity 0.2s;
+}
+
+/* Pendant une actualisation, les chiffres restent en place, un peu pâlis. */
+.tb-actualisation {
+  opacity: 0.6;
+}
+
+.tb-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2rem 1rem;
+  background: var(--admin-bg-card-solid);
+  border: 1px dashed var(--admin-border-green);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.tb-message p {
+  margin: 0;
+}
+
+.tb-panne {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+  font-weight: 600;
+}
+
+.tb-note {
+  margin: 0;
+  color: var(--tb-texte-discret);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.tb-note strong {
+  color: var(--tb-texte);
+  white-space: nowrap;
+}
+
+.tb-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tb-filtres .pr-chip {
+  min-height: 44px;
+}
+
+/* --- Tuiles de chiffres */
+.tb-tuiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 0.6rem;
+}
+
+.tb-tuile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  background: var(--admin-bg-card-solid);
+  border: 1px solid var(--admin-border-green);
+  border-radius: var(--radius-md);
+}
+
+.tb-tuile p {
+  margin: 0;
+}
+
+.tb-tuile-libelle {
+  color: var(--tb-texte-doux);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.tb-tuile-valeur {
+  color: var(--tb-texte);
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.tb-tuile-comparaison {
+  color: var(--tb-texte-discret);
+  font-size: 0.84rem;
+}
+
+.tb-tuile-lien {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--admin-yellow);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+/* --- Histogrammes */
+.tb-graphiques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 0.75rem;
+}
+
+.tb-graphique {
+  margin: 0;
+  min-width: 0;
+  padding: 0.9rem 1rem 0.6rem;
+  background: var(--admin-bg-card-solid);
+  border: 1px solid var(--admin-border-green);
+  border-radius: var(--radius-md);
+}
+
+.tb-couleur-visiteurs { --tb-serie: var(--tb-visiteurs); --tb-serie-survol: var(--tb-visiteurs-survol); }
+.tb-couleur-commandes { --tb-serie: var(--tb-commandes); --tb-serie-survol: var(--tb-commandes-survol); }
+
+.tb-graphique-titre {
+  margin: 0;
+  color: var(--tb-texte);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.tb-graphique-sous-titre {
+  margin: 0.1rem 0 0.9rem;
+  color: var(--tb-texte-discret);
+  font-size: 0.82rem;
+}
+
+.tb-histo {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.4rem;
+}
+
+.tb-histo-axe {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 150px;
+  color: var(--tb-texte-discret);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  line-height: 1;
+  transform: translateY(-0.35em);
+}
+
+.tb-histo-colonnes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--colonnes), minmax(0, 1fr));
+  /* Lignes de repère : en haut, au milieu, et la ligne de base. */
+  background:
+    linear-gradient(var(--tb-trait), var(--tb-trait)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(var(--tb-trait), var(--tb-trait)) 0 75px / 100% 1px no-repeat;
+}
+
+.tb-histo-colonne {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  outline: none;
+  cursor: default;
+}
+
+.tb-histo-zone {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 150px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+/* Barre fine (24 px au plus), coins arrondis en haut, posée à plat sur la ligne de base. */
+.tb-histo-barre {
+  display: block;
+  width: min(24px, 70%);
+  min-height: 2px;
+  background: var(--tb-serie);
+  border-radius: 4px 4px 0 0;
+  transition: background 0.15s;
+}
+
+.tb-histo-etiquette {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -0.2rem);
+  color: var(--tb-texte);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tb-histo-x {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.3rem;
+  color: var(--tb-texte-discret);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-histo-colonne:last-child .tb-histo-x {
+  color: var(--tb-texte);
+  font-weight: 700;
+}
+
+.tb-histo-bulle {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: max-content;
+  max-width: 11rem;
+  padding: 0.45rem 0.6rem;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  color: var(--tb-texte-doux);
+  font-size: 0.78rem;
+  text-align: left;
+  pointer-events: none;
+}
+
+.tb-histo-bulle strong {
+  color: var(--tb-texte);
+  font-size: 0.9rem;
+}
+
+.tb-histo-colonne:nth-child(-n + 3) .tb-histo-bulle {
+  left: 0;
+  transform: none;
+}
+
+.tb-histo-colonne:nth-last-child(-n + 3) .tb-histo-bulle {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* Au doigt, toucher une colonne lui donne le focus : la valeur s'affiche aussi. */
+.tb-histo-colonne:hover .tb-histo-bulle,
+.tb-histo-colonne:focus .tb-histo-bulle {
+  display: flex;
+}
+
+.tb-histo-colonne:hover .tb-histo-barre,
+.tb-histo-colonne:focus .tb-histo-barre {
+  background: var(--tb-serie-survol);
+}
+
+.tb-histo-colonne:focus-visible .tb-histo-zone {
+  outline: 2px solid var(--admin-yellow);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.tb-histo-vide {
+  position: absolute;
+  inset: 40px 0 auto 2rem;
+  margin: 0;
+  color: var(--tb-texte-discret);
+  font-size: 0.86rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tb-tableau {
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--tb-trait);
+}
+
+.tb-tableau summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--tb-texte-doux);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tb-tableau table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.tb-tableau th,
+.tb-tableau td {
+  padding: 0.35rem 0.25rem;
+  border-bottom: 1px solid var(--tb-trait);
+  text-align: left;
+  font-weight: 500;
+}
+
+.tb-tableau thead th {
+  color: var(--tb-texte-discret);
+  font-size: 0.78rem;
+}
+
+.tb-tableau tbody th {
+  color: var(--tb-texte-doux);
+}
+
+.tb-tableau td {
+  color: var(--tb-texte);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --- Boutiques */
+.tb-boutiques {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+  gap: 0.5rem;
+}
+
+.tb-boutique {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-height: 56px;
+  padding: 0.6rem 0.8rem;
+  background: var(--admin-bg-card-solid);
+  border: 2px solid var(--admin-border-green);
+  border-radius: var(--radius-md);
+  color: var(--tb-texte-doux);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tb-boutique[aria-selected='true'] {
+  border-color: var(--admin-yellow);
+  background: rgba(255, 208, 0, 0.08);
+}
+
+.tb-boutique:focus-visible {
+  outline: 2px solid var(--admin-yellow);
+  outline-offset: 2px;
+}
+
+.tb-boutique-nom {
+  color: var(--tb-texte);
+  font-weight: 700;
+  overflow-wrap: break-word;
+}
+
+.tb-boutique-ventes {
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.tb-panneau {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--admin-border-green);
+  border-radius: var(--radius-md);
+}
+
+.tb-tuiles-boutique .tb-tuile-valeur {
+  font-size: 1.45rem;
+}
+
+.tb-sous-titre {
+  margin: 0.6rem 0 0;
+  color: var(--tb-texte);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.tb-vide {
+  margin: 0;
+  color: var(--tb-texte-discret);
+}
+
+/* Classement des produits : barres horizontales, valeur écrite au bout du nom. */
+.tb-classement {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tb-classement-ligne {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--tb-trait);
+}
+
+.tb-classement-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.tb-classement-nom {
+  min-width: 0;
+  color: var(--tb-texte);
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.tb-classement-montant {
+  flex-shrink: 0;
+  color: var(--tb-texte);
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-classement-piste {
+  height: 10px;
+}
+
+.tb-classement-barre {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--tb-commandes);
+  border-radius: 0 4px 4px 0;
+}
+
+.tb-classement-detail {
+  margin: 0;
+  color: var(--tb-texte-discret);
+  font-size: 0.84rem;
+}
+
+.tb-non-vendus {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tb-non-vendus li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  padding: 0.35rem 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--tb-trait);
+  border-radius: 8px;
+  color: var(--tb-texte);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.tb-non-vendus-stock {
+  color: var(--tb-texte-discret);
+}
+
+/* --- Petits écrans : les colonnes rétrécissent, une étiquette de jour sur deux suffit */
+@media (max-width: 480px) {
+  .tb-titre {
+    font-size: 1.2rem;
+  }
+  .tb-raccourcis {
+    width: 100%;
+  }
+  .tb-raccourcis .btn {
+    flex: 1 1 auto;
+  }
+  .tb-graphique {
+    padding-inline: 0.7rem;
+  }
+  .tb-histo-x {
+    font-size: 0.66rem;
+  }
+  .tb-panneau {
+    padding: 0.75rem;
+  }
+  .tb-tuile {
+    padding: 0.7rem 0.8rem;
+  }
+  .tb-tuile-valeur {
+    font-size: 1.5rem;
+  }
+  .tb-tuiles-boutique .tb-tuile-valeur {
+    font-size: 1.15rem;
+    overflow-wrap: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .tb-histo-colonne:nth-child(even):not(:last-child) .tb-histo-x {
+    visibility: hidden;
+  }
+}
